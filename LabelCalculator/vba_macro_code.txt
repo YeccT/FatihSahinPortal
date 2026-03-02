@@ -1,0 +1,615 @@
+Attribute VB_Name = "EtiketHesapla"
+' Bu kod modül içine yapıştırılmalıdır (ALT+F11 -> Insert -> Module)
+Option Explicit
+
+' --- Tip Tanımları ---
+Private Type Item
+    Name As String
+    Qty As Long
+    OriginalIndex As Long
+End Type
+
+Private Type RunResult
+    Items() As Item
+    Distribution() As Long
+    Sheets As Long
+    Produced As Long
+    Waste As Long
+End Type
+
+Private Type Strategy
+    Runs() As RunResult
+    TotalSheets As Long
+    TotalWaste As Long
+    IsValid As Boolean
+End Type
+
+' --- Ana Makro ---
+Sub EtiketDagitimHesapla()
+    Dim ws As Worksheet
+    Set ws = ActiveSheet ' Veya Sheets("Sayfa1")
+    
+    ' 1. Girdileri Oku
+    ' Bıçak Sayısı (E2)
+    Dim N As Long
+    On Error Resume Next
+    N = CLng(ws.Range("E2").Value)
+    On Error GoTo 0
+    
+    If N < 1 Then
+        MsgBox "Lütfen E2 hücresine geçerli bir bıçak sayısı girin.", vbCritical
+        Exit Sub
+    End If
+    
+    ' Bedenler (C5 aşağısı) ve Adetler (D5 aşağısı)
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, "C").End(xlUp).Row
+    
+    If lastRow < 5 Then
+        MsgBox "C5 hücresinden itibaren veri bulunamadı.", vbExclamation
+        Exit Sub
+    End If
+    
+    Dim items() As Item
+    Dim itemCount As Long
+    itemCount = 0
+    
+    Dim i As Long
+    Dim cVal As String, dVal As Variant
+    
+    For i = 5 To lastRow
+        cVal = Trim(ws.Cells(i, "C").Value)
+        dVal = ws.Cells(i, "D").Value
+        
+        If cVal <> "" And IsNumeric(dVal) And dVal > 0 Then
+            ReDim Preserve items(itemCount)
+            items(itemCount).Name = cVal
+            items(itemCount).Qty = CLng(dVal)
+            items(itemCount).OriginalIndex = i ' Satır takibi için
+            itemCount = itemCount + 1
+        End If
+    Next i
+    
+    If itemCount = 0 Then
+        MsgBox "Hesaplanacak veri yok. Lütfen C5 ve D5 sütunlarını kontrol edin.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' 2. Algoritmayı Çalıştır
+    Application.Cursor = xlWait
+    Application.ScreenUpdating = False
+    
+    Dim bestStrat As Strategy
+    bestStrat = FindBestStrategy(N, items)
+    
+    ' 3. Sonuçları Yaz
+    ' Temizle (E3:N3 arası başlıkları ve E5:N... arası verileri)
+    ws.Range("E3:N3").ClearContents
+    ws.Range("E5:N" & lastRow).ClearContents
+    
+    If Not bestStrat.IsValid Then
+        Application.Cursor = xlDefault
+        Application.ScreenUpdating = True
+        MsgBox "Uygun çözüm bulunamadı!", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Başlıkları Yaz (E3:N3) -> Tabaka Sayıları
+    Dim r As Long
+    Dim runCount As Long
+    On Error Resume Next
+    runCount = UBound(bestStrat.Runs) + 1
+    On Error GoTo 0
+    
+    If runCount > 10 Then
+        MsgBox "Uyarı: 10'dan fazla montaj oluştu, sadece ilk 10'u gösterilecek.", vbInformation
+        runCount = 10
+    End If
+    
+    For r = 0 To runCount - 1
+        ws.Cells(3, 5 + r).Value = bestStrat.Runs(r).Sheets
+    Next r
+    
+    ' Dağılımı Yaz (E5:N...)
+    Dim itmIdx As Long
+    Dim resultRow As Long
+    Dim distVal As Long
+    Dim itemInRunIdx As Long
+    
+    For itmIdx = 0 To itemCount - 1
+        resultRow = items(itmIdx).OriginalIndex
+        
+        For r = 0 To runCount - 1
+            ' Bu run içinde bu item var mı?
+            itemInRunIdx = -1
+            Dim k As Long
+            For k = LBound(bestStrat.Runs(r).Items) To UBound(bestStrat.Runs(r).Items)
+                ' DÜZELTME: İsim yerine OriginalIndex ile eşleştirme yapıyoruz.
+                If bestStrat.Runs(r).Items(k).OriginalIndex = items(itmIdx).OriginalIndex Then
+                    itemInRunIdx = k
+                    Exit For
+                End If
+            Next k
+            
+            If itemInRunIdx <> -1 Then
+                distVal = bestStrat.Runs(r).Distribution(itemInRunIdx)
+                If distVal > 0 Then
+                    ws.Cells(resultRow, 5 + r).Value = distVal
+                End If
+            End If
+        Next r
+    Next itmIdx
+    
+    Application.Cursor = xlDefault
+    Application.ScreenUpdating = True
+    
+    MsgBox "Hesaplama tamamlandı!" & vbCrLf & _
+           "Toplam Tabaka: " & Format(bestStrat.TotalSheets, "#,##0") & vbCrLf & _
+           "Toplam Fire: " & Format(bestStrat.TotalWaste, "#,##0") & vbCrLf & _
+           "Montaj Sayısı: " & runCount, vbInformation
+End Sub
+
+' --- Gelişmiş Algoritma Fonksiyonları (Multi-Run Support) ---
+
+Function FindBestStrategy(N As Long, items() As Item) As Strategy
+    ' Tüm ürünleri tek bir havuz olarak değerlendirip en iyi stratejiyi bul
+    ' SolveForGroup fonksiyonu, gerekirse bunları parçalara ayırarak (partitioning)
+    ' en az fireli senaryoyu zaten dener.
+    FindBestStrategy = SolveForGroup(N, items)
+End Function
+
+Function SolveForGroup(N As Long, groupItems() As Item) As Strategy
+    Dim indices As New Collection
+    Dim i As Long
+    Dim totalQty As Long
+    totalQty = 0
+    
+    For i = 0 To UBound(groupItems)
+        indices.Add i
+        totalQty = totalQty + groupItems(i).Qty
+    Next i
+    
+    Dim forceLargeGroupHandling As Boolean
+    forceLargeGroupHandling = False
+    If (UBound(groupItems) + 1) > 9 Then forceLargeGroupHandling = True
+
+    Dim penaltyPerMontage As Long
+    ' User Request: Dynamic Penalty to solve Mixed vs Homogenous jobs.
+    ' Calculate Max/Min ratio.
+    Dim penaltyFactor As Double
+    ' User Request:
+    ' If Total > 3000 -> Low Waste (Allow Splits). Factor = 3.5%
+    ' If Total <= 3000 -> Low Montages (Single Run). Factor = 10%
+    
+    If totalQty > 3000 Then
+        ' 1.2% caused over-splitting. 3.5% was too conservative.
+        ' 2.5% is the sweet spot for 3-4 montages.
+        penaltyFactor = 0.025
+    Else
+        penaltyFactor = 0.1
+    End If
+    
+    penaltyPerMontage = totalQty * penaltyFactor
+    If penaltyPerMontage > 4000 Then penaltyPerMontage = 4000
+    If penaltyPerMontage < 50 Then penaltyPerMontage = 50
+    
+    Dim allPartitions As Collection
+    If forceLargeGroupHandling Then
+        Set allPartitions = GenerateBigGroupOptions(indices, N, UBound(groupItems) + 1, groupItems)
+    Else
+        Set allPartitions = GeneratePartitions(indices)
+    End If
+    
+    Dim bestStrat As Strategy
+    bestStrat.TotalSheets = 2147483647
+    
+    Dim p As Variant
+    Dim currentStrat As Strategy
+    Dim possible As Boolean
+    
+    For Each p In allPartitions
+        currentStrat.TotalSheets = 0
+        currentStrat.TotalWaste = 0
+        ReDim currentStrat.Runs(p.Count - 1)
+        possible = True
+        
+        Dim gIdx As Long
+        gIdx = 0
+        Dim groupIndices As Collection
+        
+        For Each groupIndices In p
+            Dim subGroupItems() As Item
+            ReDim subGroupItems(groupIndices.Count - 1)
+            Dim x As Long
+            For x = 1 To groupIndices.Count
+                subGroupItems(x - 1) = groupItems(groupIndices(x))
+            Next x
+            
+            Dim sol As RunResult
+            sol = SolveSingleRun(N, subGroupItems)
+            
+            If sol.Sheets = 2147483647 Then
+                possible = False
+                Exit For
+            End If
+            
+            currentStrat.Runs(gIdx) = sol
+            currentStrat.TotalSheets = currentStrat.TotalSheets + sol.Sheets
+            currentStrat.TotalWaste = currentStrat.TotalWaste + sol.Waste
+            gIdx = gIdx + 1
+        Next groupIndices
+        
+        If possible Then
+            currentStrat.IsValid = True
+            
+            Dim isBetter As Boolean
+            isBetter = False
+            
+            If bestStrat.TotalSheets = 2147483647 Then
+                isBetter = True
+            Else
+                Dim currentRuns As Long, bestRuns As Long
+                currentRuns = UBound(currentStrat.Runs) + 1
+                bestRuns = UBound(bestStrat.Runs) + 1
+                
+                Dim currentPenalty As Double, bestPenalty As Double
+                currentPenalty = currentRuns * penaltyPerMontage
+                bestPenalty = bestRuns * penaltyPerMontage
+                
+                ' SOFT CAP: Penalize runs > 4 heavily
+                If currentRuns > 4 Then currentPenalty = currentPenalty + ((currentRuns - 4) * (totalQty * 0.2))
+                If bestRuns > 4 Then bestPenalty = bestPenalty + ((bestRuns - 4) * (totalQty * 0.2))
+                
+                Dim currentScore As Double, bestScore As Double
+                currentScore = currentStrat.TotalWaste + currentPenalty
+                bestScore = bestStrat.TotalWaste + bestPenalty
+                
+                If currentScore < bestScore Then
+                    isBetter = True
+                ElseIf Abs(currentScore - bestScore) < 1 Then
+                    If currentStrat.TotalSheets < bestStrat.TotalSheets Then
+                        isBetter = True
+                    ElseIf currentStrat.TotalSheets = bestStrat.TotalSheets Then
+                        If currentStrat.TotalWaste < bestStrat.TotalWaste Then
+                            isBetter = True
+                        End If
+                    End If
+                End If
+            End If
+            
+            If isBetter Then
+                bestStrat = currentStrat
+            End If
+        End If
+    Next p
+    
+    SolveForGroup = bestStrat
+End Function
+
+Function GenerateBigGroupOptions(indices As Collection, N As Long, k As Long, items() As Item) As Collection
+    Dim result As New Collection
+    
+    ' Option 1: All Together
+    Dim p1 As New Collection
+    Dim g1 As New Collection
+    Dim idx As Variant
+    For Each idx In indices
+        g1.Add idx
+    Next idx
+    p1.Add g1
+    result.Add p1
+
+    ' Option 2: Chunking by N
+    If k > N Then
+        Dim pChunk As New Collection
+        Dim gChunk As Collection
+        Dim count As Long
+        count = 0
+        
+        Set gChunk = New Collection
+        For Each idx In indices
+            gChunk.Add idx
+            count = count + 1
+            If count >= N Then
+                pChunk.Add gChunk
+                Set gChunk = New Collection
+                count = 0
+            End If
+        Next idx
+        If gChunk.Count > 0 Then pChunk.Add gChunk
+        result.Add pChunk
+    End If
+
+    ' Option 3: Split by Quantity Logic (Brute Force)
+    If k > 1 Then
+        Dim sortArr() As Long
+        Dim sortQty() As Long
+        ReDim sortArr(k - 1)
+        ReDim sortQty(k - 1)
+        
+        Dim x As Long
+        x = 0
+        For Each idx In indices
+            sortArr(x) = idx
+            sortQty(x) = items(idx).Qty
+            x = x + 1
+        Next idx
+        
+        Dim i As Long, j As Long
+        Dim tempI As Long, tempQ As Long
+        
+        ' Bubble Sorting (Selection Sort Algo)
+        For i = 0 To k - 2
+            For j = i + 1 To k - 1
+                If sortQty(i) > sortQty(j) Then
+                    tempQ = sortQty(i)
+                    sortQty(i) = sortQty(j)
+                    sortQty(j) = tempQ
+                    tempI = sortArr(i)
+                    sortArr(i) = sortArr(j)
+                    sortArr(j) = tempI
+                End If
+            Next j
+        Next i
+        
+        ' Try ALL split points
+        For i = 0 To k - 2
+            Dim pSplit As New Collection
+            Dim gSmall As New Collection
+            Dim gLarge As New Collection
+            
+            Dim y As Long
+            For y = 0 To i
+                gSmall.Add sortArr(y)
+            Next y
+            
+            For y = i + 1 To k - 1
+                gLarge.Add sortArr(y)
+            Next y
+            
+            pSplit.Add gSmall
+            pSplit.Add gLarge
+            result.Add pSplit
+        Next i
+    End If
+    
+    ' Option 4: Singletons
+    Dim p2 As New Collection
+    Dim g2 As Collection
+    For Each idx In indices
+        Set g2 = New Collection
+        g2.Add idx
+        p2.Add g2
+    Next idx
+    result.Add p2
+    
+    Set GenerateBigGroupOptions = result
+End Function
+
+Function GeneratePartitions(indices As Collection) As Collection
+    Dim result As New Collection
+    If indices.Count = 0 Then
+        Dim emptyCol As New Collection
+        result.Add emptyCol
+        Set GeneratePartitions = result
+        Exit Function
+    End If
+    
+    Dim first As Long
+    first = indices(1)
+    
+    Dim rest As New Collection
+    Dim i As Long
+    For i = 2 To indices.Count
+        rest.Add indices(i)
+    Next i
+    
+    Dim partsOfRest As Collection
+    Set partsOfRest = GeneratePartitions(rest)
+    
+    Dim p As Variant
+    Dim newP As Collection
+    Dim newG As Collection
+    Dim gIter As Variant
+    
+    For Each p In partsOfRest
+        Set newP = ClonePartition(p)
+        Set newG = New Collection
+        newG.Add first
+        If newP.Count > 0 Then newP.Add newG, Before:=1 Else newP.Add newG
+        result.Add newP
+        
+        Dim gIdx As Long
+        For gIdx = 1 To p.Count
+            Set gIter = p(gIdx)
+            If gIter.Count < 6 Then
+                Set newP = ClonePartition(p)
+                newP(gIdx).Add first
+                result.Add newP
+            End If
+        Next gIdx
+    Next p
+    
+    Set GeneratePartitions = result
+End Function
+
+Function ClonePartition(p As Variant) As Collection
+    Dim newP As New Collection
+    Dim g As Variant
+    Dim newG As Collection
+    Dim idx As Variant
+    For Each g In p
+        Set newG = New Collection
+        For Each idx In g
+            newG.Add idx
+        Next idx
+        newP.Add newG
+    Next g
+    Set ClonePartition = newP
+End Function
+
+Function SolveSingleRun(N As Long, items() As Item) As RunResult
+    Dim bestRes As RunResult
+    bestRes.Sheets = 2147483647
+    
+    Dim k As Long
+    k = UBound(items) + 1
+    
+    If N < k Then
+        SolveSingleRun = bestRes
+        Exit Function
+    End If
+    
+    If k = 1 Then
+        bestRes.Items = items
+        ReDim bestRes.Distribution(0)
+        bestRes.Distribution(0) = N
+        bestRes.Sheets = WorksheetFunction.Ceiling_Math(items(0).Qty / N)
+        bestRes.Produced = bestRes.Sheets * N
+        bestRes.Waste = bestRes.Produced - items(0).Qty
+        SolveSingleRun = bestRes
+        Exit Function
+    End If
+    
+    Dim allSame As Boolean
+    allSame = True
+    Dim refQty As Long
+    refQty = items(0).Qty
+    Dim j As Long
+    For j = 1 To k - 1
+        If items(j).Qty <> refQty Then
+            allSame = False
+            Exit For
+        End If
+    Next j
+    
+    If allSame Then
+        ReDim bestRes.Distribution(k - 1)
+        Dim base As Long
+        Dim remainder As Long
+        base = Int(N / k)
+        remainder = N Mod k
+        
+        For j = 0 To k - 1
+            If j < remainder Then
+                bestRes.Distribution(j) = base + 1
+            Else
+                bestRes.Distribution(j) = base
+            End If
+        Next j
+        
+        EvaluateSolution items, bestRes.Distribution, bestRes
+        SolveSingleRun = bestRes
+        Exit Function
+    End If
+    
+    Dim dist() As Long
+    ReDim dist(k - 1)
+    
+    RecursiveGenerate 0, 0, N, k, items, dist, bestRes
+    
+    If bestRes.Sheets < 2147483647 Then
+        SolveSingleRun = bestRes
+    Else
+        SolveSingleRun = bestRes
+    End If
+End Function
+
+Sub RecursiveGenerate(index As Long, currentSum As Long, N As Long, k As Long, items() As Item, currentDist() As Long, ByRef bestRes As RunResult)
+    If index = k - 1 Then
+        Dim remainder As Long
+        remainder = N - currentSum
+        If remainder >= 1 Then
+            currentDist(index) = remainder
+            EvaluateSolution items, currentDist, bestRes
+        End If
+        Exit Sub
+    End If
+    
+    Dim remainingItems As Long
+    remainingItems = k - (index + 1)
+    
+    Dim maxForThis As Long
+    maxForThis = N - currentSum - remainingItems
+    
+    Dim startVal As Long
+    Dim endVal As Long
+    startVal = 1
+    endVal = maxForThis
+    
+    If k > 8 Then
+        Dim totalQty As Double
+        Dim j As Long
+        totalQty = 0
+        For j = 0 To k - 1
+            totalQty = totalQty + items(j).Qty
+        Next j
+        
+        Dim ideal As Double
+        ideal = (items(index).Qty / totalQty) * N
+        
+        Dim delta As Long
+        delta = Int(ideal * 0.4)
+        If delta < 4 Then delta = 4
+        
+        startVal = Int(ideal - delta)
+        If startVal < 1 Then startVal = 1
+        
+        endVal = Int(ideal + delta)
+        If endVal > maxForThis Then endVal = maxForThis
+    End If
+    
+    Dim v As Long
+    For v = startVal To endVal
+        currentDist(index) = v
+        RecursiveGenerate index + 1, currentSum + v, N, k, items, currentDist, bestRes
+    Next v
+End Sub
+
+Sub EvaluateSolution(items() As Item, dist() As Long, ByRef bestRes As RunResult)
+    Dim i As Long
+    Dim k As Long
+    k = UBound(items) + 1
+    
+    Dim reqSheets As Long
+    reqSheets = 0
+    Dim sheetForItm As Double
+    
+    For i = 0 To k - 1
+        sheetForItm = WorksheetFunction.Ceiling_Math(items(i).Qty / dist(i))
+        If sheetForItm > reqSheets Then reqSheets = sheetForItm
+    Next i
+    
+    Dim totalProd As Long
+    Dim totalReq As Long
+    Dim totalWaste As Long
+    
+    totalProd = 0
+    totalReq = 0
+    
+    For i = 0 To k - 1
+        totalProd = totalProd + (reqSheets * dist(i))
+        totalReq = totalReq + items(i).Qty
+    Next i
+    
+    totalWaste = totalProd - totalReq
+    
+    Dim isBetter As Boolean
+    isBetter = False
+    
+    If reqSheets < bestRes.Sheets Then
+        isBetter = True
+    ElseIf reqSheets = bestRes.Sheets Then
+        If totalWaste < bestRes.Waste Then
+            isBetter = True
+        End If
+    End If
+    
+    If isBetter Then
+        bestRes.Sheets = reqSheets
+        bestRes.Produced = totalProd
+        bestRes.Waste = totalWaste
+        bestRes.Items = items
+        bestRes.Distribution = dist
+    End If
+End Sub

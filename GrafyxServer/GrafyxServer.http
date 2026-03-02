@@ -1,0 +1,6 @@
+@GrafyxServer_HostAddress = http://localhost:5029
+
+GET {{GrafyxServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

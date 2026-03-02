@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fatih Şahin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Left Section: Photo -->
+        <div class="photo-section">
+            <div class="photo-overlay"></div>
+            <img src="assets/profile.png" alt="Fatih Şahin">
+        </div>
+
+        <!-- Right Section: Info -->
+        <div class="info-section">
+            <div class="content-wrapper">
+                <section class="about-card glass-card">
+                    <h2>Hakkında</h2>
+                    <div class="profile-details">
+                        <div class="detail-item">
+                            <span class="label">Ad Soyad</span>
+                            <span class="value">Fatih Şahin</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Tel</span>
+                            <span class="value"><a href="tel:+905358421105">0535 842 1105</a></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Mail</span>
+                            <span class="value"><a
+                                    href="mailto:fatih.sahin6034@hotmail.com">fatih.sahin6034@hotmail.com</a></span>
+                        </div>
+                    </div>
+                    <!-- New Button Added Here -->
+                    <div style="text-align: right; margin-top: 15px;">
+                        <button id="infoBtn" class="btn-text-link">
+                            <i class="fa-solid fa-circle-info"></i> İncelemek için tıklayın
+                        </button>
+                    </div>
+                </section>
+
+                <section class="portal-card glass-card">
+                    <h3>Portal</h3>
+                    <p class="portal-desc">Etiket hesaplama ve yönetim araçları.</p>
+                    <div class="portal-actions">
+                        <button class="btn-primary"
+                            onclick="window.open('../LabelCalculator/index.html', '_blank')">Etiket Hesaplama</button>
+                        <button id="openOcrBtn" class="btn-primary">
+                            <i class="fa-solid fa-file-image"></i> OCR Araç
+                        </button>
+                        <button class="btn-primary">
+                            Defakto Çorap
+                        </button>
+                        <button class="btn-primary" onclick="window.location.href='defacto-kart.html'">
+                            Defacto Kart & Sticker
+                        </button>
+                        <button id="openPdfBtn" class="btn-primary">
+                            <i class="fa-solid fa-file-pdf"></i> PDF İşlemleri
+                        </button>
+                    </div>
+                    <!-- Future projects will be added here -->
+                </section>
+            </div>
+
+            <footer>
+                <p>&copy; 2026 Fatih Şahin. Tüm hakları saklıdır.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Hakkımda / About</h2>
+                <button id="closeModalBtn" class="btn-icon-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="bio-section">
+                    <h3 class="lang-title"><i class="fa-solid fa-earth-europe"></i> Türkçe</h3>
+                    <p>Liseden sonra adım attığım matbaa sektöründe, baskı öncesi grafik tasarımdan başlayarak üretimin
+                        tüm teknik detaylarına hâkim olacak şekilde kendimi geliştirdim. Renk ayrımı, CMYK ve ekstra
+                        renk yönetimi, kalıp–kâğıt–ölçü optimizasyonu ve serigrafi, ofset ile dijital baskı süreçleri
+                        konusunda aktif sahada deneyim kazandım. Tasarımın yalnızca “görsel” değil, baskıya sorunsuz ve
+                        firesiz giden bir teknik süreç olduğunu erken fark ettim.</p>
+
+                    <p>Zamanla tekrar eden, hataya açık ve zaman kaybettiren işleri sorgulamaya başladım. Bu noktada
+                        <strong>Excel VBA</strong> ve <strong>C#</strong> kullanarak kendi iş akışlarımı
+                        otomatikleştiren çözümler geliştirdim. Etiket ve yıkama talimatı gibi veri odaklı tasarımlarda,
+                        BarTender ve NiceLabel üzerinden veri tabanlı, hatasız ve hızlı üretim sistemleri kurdum. Amaç
+                        her zaman aynıydı: tasarım onayından baskıya kadar olan süreci minimum insan hatasıyla, maksimum
+                        hızda ilerletmek.
+                    </p>
+
+                    <p><strong>Adobe Illustrator, CorelDRAW, Photoshop, Acrobat ve PitStop</strong> gibi araçları
+                        yalnızca tasarım için değil; baskı kontrolü, preflight ve teknik doğrulama amacıyla etkin
+                        biçimde kullanıyorum. Bunun yanında Excel, Excel VBA ve C# bilgimi tasarım süreçleriyle
+                        birleştirerek, grafik departmanlarında nadir bulunan bir iş geliştirme bakış açısı sunuyorum.
+                    </p>
+
+                    <p>Hâlihazırda çalıştığım şirkette <strong>Baskı Öncesi ve İş Geliştirme odaklı Senior
+                            Grafiker</strong> pozisyonunda; grafik ekibinin iş akışlarını yönetiyor, müşteri taleplerine
+                        uygun tasarımların onay ve baskı süreçlerini koordine ediyor ve otomasyon projeleriyle üretim
+                        verimliliğini artırıyorum. Benim için iyi bir tasarım, yalnızca estetik değil; doğru baskı,
+                        doğru ölçü ve doğru veriyle çalışan bir sistemdir.</p>
+                </div>
+
+                <div class="section-divider"><span>***</span></div>
+
+                <div class="bio-section">
+                    <h3 class="lang-title"><i class="fa-solid fa-earth-americas"></i> English</h3>
+                    <p>I am a <strong>prepress graphic designer</strong> with a strong focus on production accuracy,
+                        workflow optimization, and automation within the printing and labeling industry. Since starting
+                        my career in the printing sector after high school, I have developed hands-on expertise in color
+                        separation, CMYK and spot color management, and prepress preparation for screen, offset, and
+                        digital printing.</p>
+
+                    <p>Beyond design, I specialize in improving operational efficiency. By combining graphic production
+                        knowledge with <strong>Excel VBA and C#</strong>, I develop automation solutions that reduce
+                        manual errors and accelerate repetitive processes. I actively use BarTender and NiceLabel to
+                        build data-driven, reliable, and scalable label and care instruction workflows, ensuring a
+                        smooth transition from design approval to print.</p>
+
+                    <p>I work proficiently with <strong>Adobe Illustrator, CorelDRAW, Photoshop, Acrobat, and
+                            PitStop</strong>—not only for visual design, but also for technical validation, preflight
+                        control, and print-readiness. This hybrid skill set allows me to bridge the gap between design
+                        teams and production, delivering results that are both visually accurate and technically
+                        flawless.</p>
+
+                    <p>Currently, I work as a <strong>Senior Prepress and Process Development Graphic Designer</strong>,
+                        where I manage design and print workflows, coordinate approval processes, and lead automation
+                        initiatives to improve efficiency and consistency across production.</p>
+
+                    <p>My approach to design is practical and system-oriented: I focus on creating solutions that work
+                        reliably in real production environments, not just on screen.</p>
+                </div>
+            </div>
+            <div style="text-align:center; margin-top:2rem; opacity:0.5; font-size:0.8rem;">
+                &copy; 2026 Fatih Şahin
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- OCR Modal -->
+    <div id="ocrModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Görselden Metne (OCR)</h2>
+                <button id="closeOcrModalBtn" class="btn-icon-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p>Metin içeren bir görsel yükleyin (Türkçe, İngilizce, Arapça, Rusça).</p>
+
+                <div class="ocr-upload-section" id="dropZone">
+                    <input type="file" id="ocrInput" accept="image/*" class="file-input">
+                    <div class="upload-content">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <p>Görseli buraya sürükleyin veya</p>
+                        <label for="ocrInput" class="file-label">Bilgisayardan Seçin</label>
+                    </div>
+                    <div id="fileName" class="file-name"></div>
+                </div>
+
+                <div class="ocr-preview-container hidden" id="previewContainer">
+                    <img id="ocrPreview" src="" alt="Önizleme">
+                </div>
+
+                <div class="ocr-actions">
+                    <button id="startOcrBtn" class="btn-primary" disabled>
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Metni Çıkar
+                    </button>
+                </div>
+
+                <div id="ocrLoading" class="hidden">
+                    <div class="loading-spinner"></div>
+                    <p id="ocrStatus">İşleniyor...</p>
+                </div>
+
+                <div class="ocr-result-section hidden" id="resultSection">
+                    <h3>Sonuç:</h3>
+                    <textarea id="ocrResult" readonly></textarea>
+                    <button id="copyOcrBtn" class="btn-text-link">
+                        <i class="fa-regular fa-copy"></i> Kopyala
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Modal -->
+    <div id="pdfModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>PDF İşlemleri</h2>
+                <button id="closePdfModalBtn" class="btn-icon-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p>Bir PDF dosyası yükleyin (Sürükle bırak ve kopyala/yapıştır desteklenir).</p>
+
+                <div class="ocr-upload-section" id="pdfDropZone">
+                    <input type="file" id="pdfInput" accept="application/pdf" class="file-input">
+                    <div class="upload-content">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <p>PDF Dosyasını Sürükleyip Bırakın veya</p>
+                        <label for="pdfInput" class="file-label">Bilgisayardan Seçin</label>
+                    </div>
+                    <div id="pdfFileName" class="file-name"></div>
+                </div>
+
+                <div class="ocr-actions" style="margin-top: 2rem;">
+                    <button id="splitPdfActionBtn" class="btn-primary" disabled style="width: 100%;">
+                        <i class="fa-solid fa-scissors"></i> PDF Böl
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tesseract.js -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

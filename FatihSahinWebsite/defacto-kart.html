@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defacto Kart & Sticker Otomasyonu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Page specific styles */
+        .automation-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .automation-card {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .radio-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .radio-input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .radio-input:checked+.radio-label {
+            background: var(--accent-color);
+            color: #000;
+            border-color: var(--accent-color);
+        }
+
+        .file-drop-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .file-drop-area:hover,
+        .file-drop-area.dragover {
+            border-color: var(--accent-color);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-globes">
+        <!-- Reusing globes from index if available in style.css or just using body bg -->
+    </div>
+
+    <a href="index.html" class="back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Ana Menü
+    </a>
+
+    <div class="container automation-container">
+        <div class="glass-card automation-card">
+            <h2><i class="fa-solid fa-print"></i> Defacto Otomasyon</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Azure SQL ve BarTender Entegrasyonu
+            </p>
+
+            <form id="automationForm">
+                <div class="form-group">
+                    <label class="form-label">Sipariş No</label>
+                    <input type="text" id="sipNo" class="form-input" placeholder="Örn: 123456" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Renk</label>
+                    <input type="text" id="renk" class="form-input" placeholder="Örn: Black" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Yazdırma Tipi</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" name="printType" id="typeKart" value="kart" class="radio-input" checked>
+                            <label for="typeKart" class="radio-label">
+                                <i class="fa-solid fa-id-card" style="margin-right: 8px;"></i> Kart
+                            </label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="printType" id="typeSticker" value="sticker" class="radio-input">
+                            <label for="typeSticker" class="radio-label">
+                                <i class="fa-solid fa-note-sticky" style="margin-right: 8px;"></i> Sticker
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Excel Dosyası (.xls / .xlsx)</label>
+                    <div class="file-drop-area" id="dropZone">
+                        <i class="fa-solid fa-file-excel"
+                            style="font-size: 2.5rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <p style="margin-bottom: 0.5rem;">Dosyayı buraya sürükleyin</p>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">veya tıklayıp seçin</span>
+                        <input type="file" id="excelFile" accept=".xls,.xlsx" style="display: none;">
+                        <div id="fileName" style="margin-top: 1rem; color: var(--accent-color); font-weight: 500;">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-gear"></i> Hesapla ve Yazdır
+                </button>
+            </form>
+
+            <div id="statusMessage" style="margin-top: 1.5rem; text-align: center; display: none;">
+                <div class="loading-spinner" style="width: 30px; height: 30px; border-width: 3px;"></div>
+                <p>İşlem yapılıyor, lütfen bekleyin...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="defacto-kart.js"></script>
+</body>
+
+</html>
