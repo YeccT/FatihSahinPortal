@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Users might need to allow insecure content or run chrome with --allow-running-insecure-content
             // OR deploy the backend to an HTTPS server (e.g. Azure, AWS, Heroku)
 
-            const API_BASE_URL = 'http://localhost:5029';
+            const API_BASE_URL = 'https://stepanie-indistinct-semiexternally.ngrok-free.dev';
 
             const response = await fetch(`${API_BASE_URL}/api/defacto/process`, {
                 method: 'POST',

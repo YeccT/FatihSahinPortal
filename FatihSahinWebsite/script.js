@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('file', selectedPdfFile);
 
                 // Assuming GrafyxServer is running on its default local endpoint
-                const response = await fetch('http://localhost:5029/api/pdf/split', {
+                const response = await fetch('https://stepanie-indistinct-semiexternally.ngrok-free.dev/api/pdf/split', {
                     method: 'POST',
                     body: formData
                 });
